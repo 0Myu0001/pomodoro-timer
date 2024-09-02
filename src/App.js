@@ -1,25 +1,20 @@
 import * as React from "react";
 import "./App.css";
 import { motion } from "framer-motion";
+import { Switch, TextField } from "@mui/material";
+import InputAdornment from '@mui/material/InputAdornment';
 
 const App = () => {
+  // display mode
   const [lightmode, setlightmode] = React.useState(true);
-  const [autoStartOperation, setAutoStartOperation] = React.useState(true);
-  const [autoStartBreak, setAutoStartBreak] = React.useState(true);
-  const [mute, setMute] = React.useState(false);
-  const [menuVisible, setMenuVisible] = React.useState(false);
-
-  const [workTime, setWorkTime] = React.useState(25); // 作業時間（分）
-  const [breakTime, setBreakTime] = React.useState(5); // 休憩時間（分）
-  const [cycles, setCycles] = React.useState(4); // 繰り返し回数
-  const [currentCycle, setCurrentCycle] = React.useState(1); // 現在のサイクル
-  const [isWorkTime, setIsWorkTime] = React.useState(true); // 現在が作業時間かどうか
 
   React.useEffect(() => {
     if (lightmode) {
+      document.body.classList.remove("dark-mode");
       document.body.style.backgroundColor = "white";
       document.body.style.color = "black";
     } else {
+      document.body.classList.add("dark-mode");
       document.body.style.backgroundColor = "black";
       document.body.style.color = "white";
     }
@@ -29,13 +24,45 @@ const App = () => {
     setlightmode(!lightmode);
   };
 
+  // menu
+  const [autoStartOperation, setAutoStartOperation] = React.useState(true);
+  const [autoStartBreak, setAutoStartBreak] = React.useState(true);
+  const [mute, setMute] = React.useState(false);
+  const [menuVisible, setMenuVisible] = React.useState(false);
+
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
+  };
+
+  // timer logic
+  const [workTime, setWorkTime] = React.useState(25);
+  const [breakTime, setBreakTime] = React.useState(5);
+  const [longBreakTime, setLongBreakTime] = React.useState(15);
+  const [cycles, setCycles] = React.useState(4);
+  const [currentCycle, setCurrentCycle] = React.useState(1);
+  const [isWorkTime, setIsWorkTime] = React.useState(true);
+
+  const [tempWorkTime, setTempWorkTime] = React.useState(workTime);
+  const [tempBreakTime, setTempBreakTime] = React.useState(breakTime);
+  const [tempLongBreakTime, setTempLongBreakTime] =
+    React.useState(longBreakTime);
+  const [tempCycles, setTempCycles] = React.useState(cycles);
+
+  const handleSetClick = () => {
+    setWorkTime(tempWorkTime);
+    setBreakTime(tempBreakTime);
+    setLongBreakTime(tempLongBreakTime);
+    setCycles(tempCycles);
+    setMenuVisible(false);
   };
 
   const totalTime = isWorkTime ? workTime * 60 : breakTime * 60;
   const [time, setTime] = React.useState(totalTime);
   const [running, setRunning] = React.useState(false);
+
+  React.useEffect(() => {
+    setTime(isWorkTime ? workTime * 60 : breakTime * 60);
+  }, [workTime, breakTime, isWorkTime]);
 
   React.useEffect(() => {
     let interval;
@@ -44,6 +71,16 @@ const App = () => {
         setTime((prevTime) => prevTime - 1);
       }, 1000);
     } else if (time === 0) {
+      if (!mute) {
+        const chime = new Audio("chime.mp3");
+        chime.playbackRate = 1.25;
+        chime.play();
+        setTimeout(() => {
+          chime.pause();
+          chime.currentTime = 0;
+        }, 10000);
+      }
+
       if (isWorkTime) {
         if (currentCycle < cycles) {
           setIsWorkTime(false);
@@ -89,64 +126,91 @@ const App = () => {
           <h3 style={{ margin: "0" }}>Settings</h3>
           <div className="setting">
             <p>Work</p>
-            <md-outlined-text-field
+            <TextField
               type="number"
-              value="25"
-              suffix-text="min"
+              value={tempWorkTime}
+              onChange={(e) =>
+                setTempWorkTime(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
+              InputProps={{
+                endAdornment: <InputAdornment position="end">min</InputAdornment>,
+              }}
               style={{ margin: "auto 0 auto 0" }}
             />
           </div>
           <div className="setting">
             <p>Break</p>
-            <md-outlined-text-field
+            <TextField
               type="number"
-              value="5"
-              suffix-text="min"
+              value={tempBreakTime}
+              onChange={(e) =>
+                setTempBreakTime(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
+              InputProps={{
+                endAdornment: <InputAdornment position="end">min</InputAdornment>,
+              }}
               style={{ margin: "auto 0 auto 0" }}
             />
           </div>
           <div className="setting">
             <p>Long Break</p>
-            <md-outlined-text-field
+            <TextField
               type="number"
-              value="15"
-              suffix-text="min"
+              value={tempLongBreakTime}
+              onChange={(e) =>
+                setTempLongBreakTime(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
+              InputProps={{
+                endAdornment: <InputAdornment position="end">min</InputAdornment>,
+              }}
               style={{ margin: "auto 0 auto 0" }}
             />
           </div>
           <div className="setting">
             <p>Cycle</p>
-            <md-outlined-text-field
+            <TextField
               type="number"
-              value="4"
+              value={tempCycles}
+              onChange={(e) =>
+                setTempCycles(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
               style={{ margin: "auto 0 auto 0" }}
             />
           </div>
           <div className="setting">
-            <p>Automatic start of next operation</p>
-            <md-switch
-              selected={autoStartOperation}
+            <p>Automatic start for next work</p>
+            <Switch
+              defaultChecked={autoStartOperation}
               onChange={() => setAutoStartOperation(!autoStartOperation)}
-              style={{ margin: "auto 0 auto 0" }}
+              sx={{ my: "auto" }}
             />
           </div>
           <div className="setting">
-            <p>Automatic start of next break</p>
-            <md-switch
-              selected={autoStartBreak}
+            <p>Automatic start for next break</p>
+            <Switch
+              defaultChecked={autoStartBreak}
               onChange={() => setAutoStartBreak(!autoStartBreak)}
-              style={{ margin: "auto 0 auto 0" }}
+              sx={{ my: "auto" }}
               className="md-switch"
             />
           </div>
           <div className="setting">
             <p>Mute</p>
-            <md-switch
-              selected={mute}
+            <Switch
+              defaultChecked={mute}
               onChange={() => setMute(!mute)}
-              style={{ margin: "auto 0 auto 0" }}
+              sx={{ my: "auto" }}
             />
           </div>
+          <md-filled-button onClick={handleSetClick}>Set</md-filled-button>
         </div>
       ) : (
         <div className="timer">
@@ -175,7 +239,7 @@ const App = () => {
                   cx="200"
                   cy="200"
                   r={radius}
-                  stroke="orange"
+                  stroke="#3700b3"
                   strokeWidth="8"
                   fill="none"
                   strokeDasharray={circumference}
@@ -203,18 +267,37 @@ const App = () => {
               </div>
             </div>
             <div style={{ marginTop: 20 }}>
+              <p>{isWorkTime ? "Work Progress" : "Rest Progress"}</p>
+              <p>
+                Cycle: {currentCycle}/{cycles}
+              </p>
               {running ? (
-                <button
-                  onClick={() => setRunning(!running)}
-                  style={{ backgroundColor: "#3030B8" }}
+                <div
+                  style={{ display: "flex", justifyContent: "space-evenly" }}
                 >
-                  <span className="material-symbols-outlined">pause</span>
-                </button>
-              ) : (
-                <div style={{ display: "flex" }}>
                   <button
                     onClick={() => setRunning(!running)}
                     style={{ backgroundColor: "#3030B8" }}
+                  >
+                    <span className="material-symbols-outlined">pause</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{ display: "flex", justifyContent: "space-evenly" }}
+                >
+                  <button
+                    onClick={() => {
+                      setTime(totalTime);
+                      setRunning(false);
+                    }}
+                    style={{ backgroundColor: "#3030B8" }}
+                  >
+                    <span className="material-symbols-outlined">replay</span>
+                  </button>
+                  <button
+                    onClick={() => setRunning(!running)}
+                    style={{ marginLeft: 10, backgroundColor: "#3030B8" }}
                   >
                     <span className="material-symbols-outlined">
                       play_arrow
@@ -223,11 +306,15 @@ const App = () => {
                   <button
                     onClick={() => {
                       setTime(totalTime);
+                      setCurrentCycle(1);
+                      setIsWorkTime(true);
                       setRunning(false);
                     }}
                     style={{ marginLeft: 10, backgroundColor: "#3030B8" }}
                   >
-                    <span className="material-symbols-outlined">replay</span>
+                    <span className="material-symbols-outlined">
+                      restart_alt
+                    </span>
                   </button>
                 </div>
               )}
